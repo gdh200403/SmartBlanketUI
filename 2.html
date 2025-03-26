@@ -155,6 +155,7 @@
             box-shadow: 0 4px 8px rgba(0,0,0,0.2);
             z-index: 100;
             cursor: pointer;
+            transition: all 0.3s ease;
         }
 
         .floating-control.expanded {
@@ -166,11 +167,28 @@
         .control-actions {
             display: none;
             flex-direction: row;
+            align-items: center;
             gap: 16px;
         }
 
         .floating-control.expanded .control-actions {
             display: flex;
+        }
+        
+        .control-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        
+        .stop-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 20px;
+            background-color: #e53935; /* 红色 */
+            color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
 
         /* 卡片样式 */
@@ -479,6 +497,134 @@
             width: 50px;
             height: 50px;
             border-radius: 25px;
+        }
+
+        /* 设备添加弹窗 */
+        .device-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 300;
+        }
+        
+        .device-modal {
+            background-color: var(--md-sys-color-surface);
+            width: 90%;
+            max-width: 360px;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.2);
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .device-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        
+        .device-modal-header h3 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 500;
+        }
+        
+        .device-modal-body {
+            margin-bottom: 24px;
+        }
+        
+        .device-modal-body .input-group {
+            margin-bottom: 16px;
+        }
+        
+        .device-modal-body .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--md-sys-color-on-surface-variant);
+            font-size: 14px;
+        }
+        
+        .device-modal-body .input-group input,
+        .device-modal-body .input-group select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--md-sys-color-outline);
+            border-radius: 8px;
+            background-color: var(--md-sys-color-surface);
+            color: var(--md-sys-color-on-surface);
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        
+        .device-scan-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 12px;
+            background-color: var(--md-sys-color-surface-variant);
+            color: var(--md-sys-color-on-surface-variant);
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-bottom: 24px;
+        }
+        
+        .device-scan-button:hover {
+            background-color: var(--md-sys-color-primary-container);
+            color: var(--md-sys-color-on-primary-container);
+        }
+        
+        .device-list {
+            margin-top: 16px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .device-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            background-color: var(--md-sys-color-surface-variant);
+            cursor: pointer;
+        }
+        
+        .device-item.selected {
+            background-color: var(--md-sys-color-primary-container);
+        }
+        
+        .device-item-info {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .device-item-name {
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+        
+        .device-item-id {
+            font-size: 12px;
+            color: var(--md-sys-color-on-surface-variant);
+        }
+        
+        .device-modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
         }
     </style>
 </head>
@@ -913,7 +1059,7 @@
                     </div>
                     <span class="material-icons" style="color: var(--md-sys-color-on-surface-variant);">bluetooth</span>
                 </div>
-                <button class="button button-outlined" style="margin-top: 12px; width: 100%;">
+                <button class="button button-outlined" style="margin-top: 12px; width: 100%;" onclick="toggleDeviceModal()">
                     <span class="material-icons">add</span>
                     添加新设备
                 </button>
@@ -1016,10 +1162,14 @@
 
         <!-- 悬浮控制球 -->
         <div class="floating-control" id="floatingControl" onclick="toggleControlExpand()">
-            <span class="material-icons">play_arrow</span>
+            <span class="material-icons" id="controlMainIcon">play_arrow</span>
             <div class="control-actions">
-                <span class="material-icons">pause</span>
-                <span class="material-icons">stop</span>
+                <div class="control-btn" onclick="pauseTraining(event)">
+                    <span class="material-icons">pause</span>
+                </div>
+                <div class="control-btn stop-btn" onclick="stopTraining(event)">
+                    <span class="material-icons">stop</span>
+                </div>
             </div>
         </div>
 
@@ -1147,6 +1297,52 @@
                 <span class="material-icons">close_fullscreen</span>
             </div>
         </div>
+
+        <!-- 设备添加弹窗 -->
+        <div class="device-modal-overlay" id="deviceModal">
+            <div class="device-modal">
+                <div class="device-modal-header">
+                    <h3>添加新设备</h3>
+                    <span class="material-icons" style="cursor: pointer;" onclick="toggleDeviceModal()">close</span>
+                </div>
+                <div class="device-modal-body">
+                    <div class="input-group">
+                        <label>设备类型</label>
+                        <select id="deviceType">
+                            <option value="home">智能毯-家用款</option>
+                            <option value="gym">智能毯-健身房</option>
+                            <option value="portable">智能毯-便携版</option>
+                            <option value="pro">智能毯-专业版</option>
+                        </select>
+                    </div>
+                    
+                    <button class="device-scan-button" onclick="scanForDevices()">
+                        <span class="material-icons">bluetooth_searching</span>
+                        扫描附近设备
+                    </button>
+                    
+                    <div id="deviceList" class="device-list" style="display: none;">
+                        <!-- 扫描到的设备会动态添加到这里 -->
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>设备名称（选填）</label>
+                        <input type="text" id="deviceName" placeholder="为您的设备起个名字">
+                    </div>
+                    
+                    <div style="margin-top: 24px; padding: 12px; background-color: var(--md-sys-color-primary-container); border-radius: 8px;">
+                        <div style="font-weight: 500; margin-bottom: 8px; color: var(--md-sys-color-on-primary-container);">连接提示</div>
+                        <p style="margin: 0; font-size: 14px; color: var(--md-sys-color-on-primary-container);">
+                            请确保您的智能毯已开机并处于蓝牙配对模式，设备指示灯闪烁蓝色时表示已准备就绪。
+                        </p>
+                    </div>
+                </div>
+                <div class="device-modal-footer">
+                    <button class="button button-outlined" onclick="toggleDeviceModal()">取消</button>
+                    <button class="button button-primary" onclick="addNewDevice()">连接设备</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -1211,11 +1407,18 @@
             const icon = pauseButton.querySelector('.material-icons');
             
             if (icon.textContent === 'pause') {
+                // 切换到播放状态
                 icon.textContent = 'play_arrow';
-                pauseButton.querySelector('span:last-child').textContent = '继续';
+                
+                // 修改暂停按钮文本内容
+                // 由于按钮内可能没有单独的文本节点，直接处理按钮内容
+                pauseButton.innerHTML = '<span class="material-icons">play_arrow</span>继续';
             } else {
+                // 切换到暂停状态
                 icon.textContent = 'pause';
-                pauseButton.querySelector('span:last-child').textContent = '暂停';
+                
+                // 修改暂停按钮文本内容
+                pauseButton.innerHTML = '<span class="material-icons">pause</span>暂停';
             }
         }
         
@@ -1235,7 +1438,17 @@
         
         function toggleControlExpand() {
             const control = document.getElementById('floatingControl');
-            control.classList.toggle('expanded');
+            const mainIcon = document.getElementById('controlMainIcon');
+            
+            if (!control.classList.contains('expanded')) {
+                // 展开控制球
+                control.classList.add('expanded');
+                mainIcon.style.display = 'none';
+            } else {
+                // 折叠控制球
+                control.classList.remove('expanded');
+                mainIcon.style.display = 'block';
+            }
         }
         
         function showFeedbackOverlay() {
@@ -1253,8 +1466,146 @@
             document.getElementById('emergencyOverlay').style.display = 'none';
         }
         
+        // 设备添加相关函数
+        function toggleDeviceModal() {
+            const modal = document.getElementById('deviceModal');
+            if (modal.style.display === 'flex') {
+                modal.style.display = 'none';
+                document.body.style.overflow = 'auto'; // 恢复页面滚动
+            } else {
+                modal.style.display = 'flex';
+                document.body.style.overflow = 'hidden'; // 防止背景页面滚动
+            }
+        }
+        
+        function addNewDevice() {
+            // 获取表单数据
+            const deviceType = document.getElementById('deviceType').value;
+            const deviceName = document.getElementById('deviceName').value;
+            const selectedDevice = document.querySelector('.device-item.selected');
+            
+            // 简单验证
+            if (!selectedDevice) {
+                alert('请选择一个设备');
+                return;
+            }
+            
+            const deviceId = selectedDevice.getAttribute('data-id');
+            const deviceDefaultName = selectedDevice.querySelector('.device-item-name').textContent;
+            
+            // 这里模拟添加设备过程
+            // 实际应用中应该有真实的设备连接逻辑
+            
+            // 显示连接中提示
+            document.getElementById('feedbackOverlay').style.display = 'flex';
+            setTimeout(() => {
+                document.getElementById('feedbackOverlay').style.display = 'none';
+                
+                // 模拟连接成功后添加到设备列表
+                const deviceCard = document.querySelector('.profile-header').closest('.page').querySelector('.card:nth-child(2)');
+                const newDeviceItem = document.createElement('div');
+                newDeviceItem.className = 'settings-item';
+                newDeviceItem.innerHTML = `
+                    <div>
+                        <div>${deviceName || deviceDefaultName}</div>
+                        <div style="font-size: 12px; color: var(--md-sys-color-on-surface-variant);">已连接 · ID: ${deviceId}</div>
+                    </div>
+                    <span class="material-icons" style="color: var(--md-sys-color-primary);">bluetooth_connected</span>
+                `;
+                
+                // 插入到列表开头
+                const addButton = deviceCard.querySelector('button');
+                deviceCard.insertBefore(newDeviceItem, addButton);
+                
+                // 关闭弹窗
+                toggleDeviceModal();
+                
+                // 清空表单
+                document.getElementById('deviceName').value = '';
+            }, 2000);
+        }
+        
+        // 蓝牙扫描相关功能
+        function scanForDevices() {
+            const scanButton = document.querySelector('.device-scan-button');
+            const deviceList = document.getElementById('deviceList');
+            
+            // 更改按钮状态为"扫描中"
+            scanButton.innerHTML = '<span class="material-icons">hourglass_top</span> 正在扫描...';
+            scanButton.disabled = true;
+            
+            // 显示列表容器
+            deviceList.style.display = 'block';
+            deviceList.innerHTML = ''; // 清空之前的设备列表
+            
+            // 模拟扫描过程
+            setTimeout(() => {
+                // 模拟发现的设备数据
+                const discoveredDevices = [
+                    { id: 'MAT2023102', name: '智能毯-家用款', signal: '强' },
+                    { id: 'MAT2023098', name: '智能毯-健身房', signal: '中' },
+                    { id: 'MAT2023077', name: '智能毯-便携版', signal: '弱' }
+                ];
+                
+                // 添加设备到列表
+                discoveredDevices.forEach(device => {
+                    const deviceItem = document.createElement('div');
+                    deviceItem.className = 'device-item';
+                    deviceItem.setAttribute('data-id', device.id);
+                    deviceItem.innerHTML = `
+                        <div class="device-item-info">
+                            <div class="device-item-name">${device.name}</div>
+                            <div class="device-item-id">ID: ${device.id} · 信号: ${device.signal}</div>
+                        </div>
+                        <span class="material-icons">bluetooth</span>
+                    `;
+                    
+                    // 添加点击事件，选择设备
+                    deviceItem.addEventListener('click', function() {
+                        // 移除其他设备的选中状态
+                        document.querySelectorAll('.device-item').forEach(item => {
+                            item.classList.remove('selected');
+                        });
+                        
+                        // 添加选中状态
+                        this.classList.add('selected');
+                    });
+                    
+                    deviceList.appendChild(deviceItem);
+                });
+                
+                // 恢复按钮状态
+                scanButton.innerHTML = '<span class="material-icons">bluetooth_searching</span> 重新扫描';
+                scanButton.disabled = false;
+                
+            }, 2000); // 模拟2秒的扫描时间
+        }
+        
         // 演示用功能 - 5秒后显示反馈浮层
         setTimeout(showFeedbackOverlay, 5000);
+        
+        function pauseTraining(event) {
+            // 防止事件冒泡到父元素
+            event.stopPropagation();
+            
+            // 这里添加暂停训练的逻辑
+            alert('训练已暂停');
+        }
+        
+        function stopTraining(event) {
+            // 防止事件冒泡到父元素
+            event.stopPropagation();
+            
+            // 这里添加停止训练的逻辑
+            if (confirm('确定要结束当前训练吗？')) {
+                alert('训练已结束');
+                // 重置控制球状态
+                const control = document.getElementById('floatingControl');
+                const mainIcon = document.getElementById('controlMainIcon');
+                control.classList.remove('expanded');
+                mainIcon.style.display = 'block';
+            }
+        }
     </script>
 </body>
 </html>
