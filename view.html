@@ -1,0 +1,1044 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能毯应用 - 平铺预览</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style>
+        :root {
+            /* 清新绿色主题 */
+            --md-sys-color-primary: #146c2e; /* 深绿色 */
+            --md-sys-color-primary-container: #c8f7d6; /* 浅绿色容器 */
+            --md-sys-color-on-primary: #ffffff; /* 主色上的文字 */
+            --md-sys-color-on-primary-container: #002107; /* 容器上的文字 */
+            --md-sys-color-secondary: #4d6356; /* 次要颜色 */
+            --md-sys-color-on-secondary: #ffffff; /* 次要颜色上的文字 */
+            --md-sys-color-secondary-container: #cfe9d9; /* 次要容器 */
+            --md-sys-color-on-secondary-container: #0a201a; /* 次要容器上的文字 */
+            
+            /* 保持其他系统颜色 */
+            --md-sys-color-error: #ba1a1a;
+            --md-sys-color-background: #f8fefb; /* 稍微调整为清新的白色 */
+            --md-sys-color-on-background: #191c1a;
+            --md-sys-color-surface: #f8fefb;
+            --md-sys-color-on-surface: #191c1a;
+            --md-sys-color-surface-variant: #dde5e1; /* 调整为配合主题的表面变体 */
+            --md-sys-color-on-surface-variant: #404943;
+            --md-sys-color-outline: #72796f;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #e0e0e0;
+            color: var(--md-sys-color-on-background);
+        }
+
+        /* 平铺预览样式 */
+        .preview-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            padding: 20px;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .preview-title {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 16px;
+            background-color: var(--md-sys-color-primary);
+            color: white;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .preview-card {
+            background-color: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .preview-header {
+            background-color: var(--md-sys-color-primary-container);
+            color: var(--md-sys-color-on-primary-container);
+            padding: 12px 16px;
+            font-weight: 500;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .preview-content {
+            height: 650px;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        /* 调整原有容器样式 */
+        .app-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .page {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            padding-bottom: 72px;
+            display: block; /* 修改这里，使所有页面都显示 */
+        }
+
+        /* 保留原有样式 */
+        .app-bar {
+            background-color: var(--md-sys-color-surface);
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .app-bar h1 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 500;
+        }
+
+        .app-bar-actions {
+            display: flex;
+            gap: 16px;
+        }
+
+        /* 底部导航栏 */
+        .bottom-nav {
+            display: flex;
+            justify-content: space-around;
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            background-color: var(--md-sys-color-surface);
+            box-shadow: 0 -1px 3px rgba(0,0,0,0.1);
+            padding: 8px 0;
+            z-index: 10;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 8px 0;
+            color: var(--md-sys-color-on-surface-variant);
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .nav-item.active {
+            color: var(--md-sys-color-primary);
+        }
+
+        .material-icons {
+            font-size: 24px;
+        }
+
+        /* 悬浮控制球 */
+        .floating-control {
+            position: absolute;
+            bottom: 80px;
+            right: 16px;
+            width: 56px;
+            height: 56px;
+            border-radius: 28px;
+            background-color: var(--md-sys-color-primary);
+            color: var(--md-sys-color-on-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            z-index: 100;
+            cursor: pointer;
+        }
+
+        .floating-control.expanded {
+            width: auto;
+            border-radius: 28px;
+            padding: 0 16px;
+        }
+
+        .control-actions {
+            display: none;
+            flex-direction: row;
+            gap: 16px;
+        }
+
+        .floating-control.expanded .control-actions {
+            display: flex;
+        }
+
+        /* 卡片样式 */
+        .card {
+            background-color: var(--md-sys-color-surface);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 500;
+            margin-top: 0;
+            margin-bottom: 12px;
+            color: var(--md-sys-color-on-surface);
+        }
+
+        /* 按钮样式 */
+        .button {
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: none;
+            font-weight: 500;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .button-primary {
+            background-color: var(--md-sys-color-primary);
+            color: var(--md-sys-color-on-primary);
+        }
+
+        .button-outlined {
+            background-color: transparent;
+            color: var(--md-sys-color-primary);
+            border: 1px solid var(--md-sys-color-outline);
+        }
+
+        /* 实时反馈浮层 */
+        .feedback-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.6);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .feedback-card {
+            background-color: var(--md-sys-color-surface);
+            width: 80%;
+            max-width: 320px;
+            border-radius: 16px;
+            padding: 24px;
+            text-align: center;
+        }
+
+        .feedback-icon {
+            font-size: 48px;
+            color: var(--md-sys-color-primary);
+            margin-bottom: 16px;
+        }
+
+        .feedback-emergency {
+            background-color: rgba(186, 26, 26, 0.8);
+        }
+
+        .feedback-emergency .feedback-card {
+            border: 2px solid #fff;
+        }
+
+        .feedback-emergency .feedback-icon {
+            color: var(--md-sys-color-error);
+        }
+
+        /* 热力图 */
+        .heatmap {
+            width: 100%;
+            height: 200px;
+            background-color: #d7f5e5;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .heatmap-figure {
+            width: 60px;
+            height: 120px;
+            background-color: rgba(20, 108, 46, 0.3);
+            border-radius: 30px;
+            position: relative;
+        }
+
+        .heatmap-point {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            border-radius: 15px;
+            background-color: rgba(20, 108, 46, 0.8);
+        }
+
+        /* 图表占位符 */
+        .chart-placeholder {
+            width: 100%;
+            height: 200px;
+            background-color: #e8f5ee;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #757575;
+        }
+
+        /* 设置项和表单控件 */
+        .settings-group {
+            margin-bottom: 24px;
+        }
+
+        .settings-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--md-sys-color-surface-variant);
+        }
+
+        .settings-item:last-child {
+            border-bottom: none;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 36px;
+            height: 20px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--md-sys-color-surface-variant);
+            transition: .4s;
+            border-radius: 20px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 2px;
+            bottom: 2px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--md-sys-color-primary);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(16px);
+        }
+
+        /* 筛选导航栏 */
+        .filter-nav {
+            display: flex;
+            overflow-x: auto;
+            gap: 8px;
+            padding: 8px 0;
+        }
+
+        .filter-chip {
+            padding: 6px 12px;
+            border-radius: 16px;
+            background-color: var(--md-sys-color-surface-variant);
+            color: var(--md-sys-color-on-surface-variant);
+            white-space: nowrap;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .filter-chip.active {
+            background-color: var(--md-sys-color-primary-container);
+            color: var(--md-sys-color-on-primary-container);
+        }
+
+        /* 个人信息区 */
+        .profile-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .profile-avatar {
+            width: 64px;
+            height: 64px;
+            border-radius: 32px;
+            background-color: var(--md-sys-color-primary-container);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--md-sys-color-on-primary-container);
+            font-size: 24px;
+        }
+
+        .profile-info h2 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 500;
+        }
+
+        .badge-container {
+            display: flex;
+            gap: 8px;
+            margin-top: 4px;
+        }
+
+        .badge {
+            background-color: var(--md-sys-color-secondary-container);
+            color: var(--md-sys-color-on-secondary-container);
+            font-size: 12px;
+            padding: 2px 8px;
+            border-radius: 12px;
+        }
+
+        /* 响应式布局 */
+        @media (max-width: 1200px) {
+            .preview-container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="preview-container">
+        <div class="preview-title">
+            <h1>智能毯应用 - 平铺预览</h1>
+        </div>
+
+        <!-- 首页预览 -->
+        <div class="preview-card">
+            <div class="preview-header">
+                <div>首页</div>
+                <span class="material-icons">home</span>
+            </div>
+            <div class="preview-content">
+                <div class="app-container">
+                    <div id="homepage" class="page">
+                        <div class="app-bar">
+                            <h1>智慧健康训练</h1>
+                            <div class="app-bar-actions">
+                                <span class="material-icons">notifications</span>
+                            </div>
+                        </div>
+                        
+                        <div class="card">
+                            <h2 class="card-title">今日概览</h2>
+                            <div class="chart-placeholder">今日训练时长与数据图表</div>
+                            <div style="display: flex; justify-content: space-between; margin-top: 12px;">
+                                <div>
+                                    <div style="font-size: 12px; color: var(--md-sys-color-on-surface-variant);">训练时长</div>
+                                    <div style="font-size: 18px; font-weight: 500;">25分钟</div>
+                                </div>
+                                <div>
+                                    <div style="font-size: 12px; color: var(--md-sys-color-on-surface-variant);">平均准确率</div>
+                                    <div style="font-size: 18px; font-weight: 500;">92%</div>
+                                </div>
+                                <div>
+                                    <div style="font-size: 12px; color: var(--md-sys-color-on-surface-variant);">完成动作</div>
+                                    <div style="font-size: 18px; font-weight: 500;">15个</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card" style="background-color: var(--md-sys-color-primary-container); padding: 16px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <h2 style="margin: 0; color: var(--md-sys-color-on-primary-container);">开始今日训练</h2>
+                                    <p style="margin: 4px 0 0 0; color: var(--md-sys-color-on-primary-container); opacity: 0.8;">根据你的习惯，我们推荐瑜伽训练</p>
+                                </div>
+                                <button class="button button-primary">
+                                    立即开始
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="card">
+                            <h2 class="card-title">快速训练</h2>
+                            <div style="display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px;">
+                                <div style="min-width: 120px; background-color: var(--md-sys-color-primary-container); padding: 16px; border-radius: 12px; text-align: center; cursor: pointer;">
+                                    <span class="material-icons">self_improvement</span>
+                                    <div style="margin-top: 8px; font-weight: 500;">瑜伽</div>
+                                    <div style="font-size: 12px;">10+ 姿势</div>
+                                </div>
+                                <div style="min-width: 120px; background-color: var(--md-sys-color-secondary-container); padding: 16px; border-radius: 12px; text-align: center; cursor: pointer;">
+                                    <span class="material-icons">sports_martial_arts</span>
+                                    <div style="margin-top: 8px; font-weight: 500;">太极</div>
+                                    <div style="font-size: 12px;">8+ 动作</div>
+                                </div>
+                                <div style="min-width: 120px; background-color: var(--md-sys-color-surface-variant); padding: 16px; border-radius: 12px; text-align: center; cursor: pointer;">
+                                    <span class="material-icons">fitness_center</span>
+                                    <div style="margin-top: 8px; font-weight: 500;">力量训练</div>
+                                    <div style="font-size: 12px;">12+ 动作</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card">
+                            <h2 class="card-title">个人目标</h2>
+                            <div style="background-color: var(--md-sys-color-surface-variant); height: 8px; border-radius: 4px; overflow: hidden;">
+                                <div style="background-color: var(--md-sys-color-primary); width: 65%; height: 100%;"></div>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; margin-top: 8px;">
+                                <span style="font-size: 14px;">每周训练3次</span>
+                                <span style="font-size: 14px; font-weight: 500;">2/3</span>
+                            </div>
+                            <div style="margin-top: 16px;">
+                                <div style="display: flex; gap: 4px; margin-bottom: 8px;">
+                                    <div style="width: 24px; height: 24px; border-radius: 12px; background-color: var(--md-sys-color-primary); display: flex; align-items: center; justify-content: center; color: white; font-size: 12px;">一</div>
+                                    <div style="width: 24px; height: 24px; border-radius: 12px; background-color: var(--md-sys-color-primary); display: flex; align-items: center; justify-content: center; color: white; font-size: 12px;">二</div>
+                                    <div style="width: 24px; height: 24px; border-radius: 12px; background-color: var(--md-sys-color-surface-variant); display: flex; align-items: center; justify-content: center; color: var(--md-sys-color-on-surface-variant); font-size: 12px;">三</div>
+                                    <div style="width: 24px; height: 24px; border-radius: 12px; background-color: var(--md-sys-color-surface-variant); display: flex; align-items: center; justify-content: center; color: var(--md-sys-color-on-surface-variant); font-size: 12px;">四</div>
+                                    <div style="width: 24px; height: 24px; border-radius: 12px; background-color: var(--md-sys-color-surface-variant); display: flex; align-items: center; justify-content: center; color: var(--md-sys-color-on-surface-variant); font-size: 12px;">五</div>
+                                    <div style="width: 24px; height: 24px; border-radius: 12px; background-color: var(--md-sys-color-surface-variant); display: flex; align-items: center; justify-content: center; color: var(--md-sys-color-on-surface-variant); font-size: 12px;">六</div>
+                                    <div style="width: 24px; height: 24px; border-radius: 12px; background-color: var(--md-sys-color-surface-variant); display: flex; align-items: center; justify-content: center; color: var(--md-sys-color-on-surface-variant); font-size: 12px;">日</div>
+                                </div>
+                                <button class="button button-outlined" style="width: 100%;">查看完整计划</button>
+                            </div>
+                        </div>
+                        
+                        <div class="bottom-nav">
+                            <div class="nav-item active">
+                                <span class="material-icons">home</span>
+                                <span>首页</span>
+                            </div>
+                            <div class="nav-item">
+                                <span class="material-icons">fitness_center</span>
+                                <span>训练</span>
+                            </div>
+                            <div class="nav-item">
+                                <span class="material-icons">insights</span>
+                                <span>数据</span>
+                            </div>
+                            <div class="nav-item">
+                                <span class="material-icons">person</span>
+                                <span>我的</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 训练页预览 -->
+        <div class="preview-card">
+            <div class="preview-header">
+                <div>训练页</div>
+                <span class="material-icons">fitness_center</span>
+            </div>
+            <div class="preview-content">
+                <div class="app-container">
+                    <div id="training" class="page">
+                        <div class="app-bar">
+                            <h1>实时训练</h1>
+                            <div class="app-bar-actions">
+                                <span class="material-icons">view_list</span>
+                                <span class="material-icons">settings</span>
+                            </div>
+                        </div>
+                        
+                        <div class="heatmap">
+                            <div class="heatmap-figure">
+                                <div class="heatmap-point" style="top: 30px; left: 20px;"></div>
+                                <div class="heatmap-point" style="top: 80px; right: 20px;"></div>
+                            </div>
+                            <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; border: 1px dashed rgba(0,0,0,0.2); border-radius: 12px;"></div>
+                            <div style="position: absolute; top: 50%; left: 0; width: 100%; border-top: 1px dashed rgba(0,0,0,0.2);"></div>
+                            <div style="position: absolute; top: 0; left: 50%; height: 100%; border-left: 1px dashed rgba(0,0,0,0.2);"></div>
+                            
+                            <div style="position: absolute; bottom: 10px; right: 10px; background-color: rgba(255,255,255,0.8); padding: 4px 8px; border-radius: 12px; font-size: 12px; cursor: pointer;">
+                                <span class="material-icons" style="font-size: 16px; vertical-align: middle;">fullscreen</span>
+                                全屏查看
+                            </div>
+                        </div>
+                        
+                        <div class="card">
+                            <h2 class="card-title">当前动作: 平板支撑</h2>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 16px;">
+                                <div>
+                                    <div style="font-size: 12px; color: var(--md-sys-color-on-surface-variant);">已持续时间</div>
+                                    <div style="font-size: 24px; font-weight: 500;">00:45</div>
+                                </div>
+                                <div>
+                                    <div style="font-size: 12px; color: var(--md-sys-color-on-surface-variant);">目标时间</div>
+                                    <div style="font-size: 24px; font-weight: 500;">01:00</div>
+                                </div>
+                            </div>
+                            <div style="background-color: var(--md-sys-color-surface-variant); height: 8px; border-radius: 4px; overflow: hidden;">
+                                <div style="background-color: var(--md-sys-color-primary); width: 75%; height: 100%;"></div>
+                            </div>
+                            
+                            <div style="display: flex; gap: 8px; margin-top: 16px;">
+                                <button class="button button-outlined" style="flex: 1;">
+                                    <span class="material-icons">skip_previous</span>
+                                    上一个
+                                </button>
+                                <button class="button button-primary" style="flex: 1;" id="pauseButton">
+                                    <span class="material-icons">pause</span>
+                                    暂停
+                                </button>
+                                <button class="button button-outlined" style="flex: 1;">
+                                    <span class="material-icons">skip_next</span>
+                                    下一个
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="card">
+                            <h2 class="card-title">实时数据</h2>
+                            <div style="display: flex; justify-content: space-between;">
+                                <div>
+                                    <div style="font-size: 12px; color: var(--md-sys-color-on-surface-variant);">平衡指数</div>
+                                    <div style="font-size: 18px; font-weight: 500;">85%</div>
+                                    <div style="font-size: 12px; color: #4caf50; display: flex; align-items: center;">
+                                        <span class="material-icons" style="font-size: 14px;">trending_up</span>
+                                        +5%
+                                    </div>
+                                </div>
+                                <div>
+                                    <div style="font-size: 12px; color: var(--md-sys-color-on-surface-variant);">姿势准确度</div>
+                                    <div style="font-size: 18px; font-weight: 500;">92%</div>
+                                    <div style="font-size: 12px; color: #4caf50; display: flex; align-items: center;">
+                                        <span class="material-icons" style="font-size: 14px;">trending_up</span>
+                                        +2%
+                                    </div>
+                                </div>
+                                <div>
+                                    <div style="font-size: 12px; color: var(--md-sys-color-on-surface-variant);">心率</div>
+                                    <div style="font-size: 18px; font-weight: 500;">86 BPM</div>
+                                    <div style="font-size: 12px; color: #ff9800; display: flex; align-items: center;">
+                                        <span class="material-icons" style="font-size: 14px;">trending_up</span>
+                                        +5
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card">
+                            <h2 class="card-title">训练引导</h2>
+                            <div style="display: flex; align-items: center; gap: 16px;">
+                                <span class="material-icons" style="font-size: 48px; color: var(--md-sys-color-primary);">self_improvement</span>
+                                <div>
+                                    <div style="font-weight: 500;">保持核心紧缩</div>
+                                    <div style="font-size: 14px; color: var(--md-sys-color-on-surface-variant);">确保腰背挺直，不要下沉</div>
+                                </div>
+                            </div>
+                            <button class="button button-outlined" style="width: 100%; margin-top: 12px; display: flex; justify-content: center; align-items: center; gap: 8px;">
+                                <span class="material-icons">play_circle</span>
+                                查看视频示范
+                            </button>
+                        </div>
+                        
+                        <div class="card">
+                            <h2 class="card-title">训练进度 (3/8)</h2>
+                            <div style="display: flex; overflow-x: auto; gap: 8px; padding: 4px 0;">
+                                <div style="min-width: 40px; height: 40px; border-radius: 20px; background-color: var(--md-sys-color-primary); display: flex; align-items: center; justify-content: center; color: white;">
+                                    <span class="material-icons" style="font-size: 20px;">check</span>
+                                </div>
+                                <div style="min-width: 40px; height: 40px; border-radius: 20px; background-color: var(--md-sys-color-primary); display: flex; align-items: center; justify-content: center; color: white;">
+                                    <span class="material-icons" style="font-size: 20px;">check</span>
+                                </div>
+                                <div style="min-width: 40px; height: 40px; border-radius: 20px; background-color: var(--md-sys-color-primary); display: flex; align-items: center; justify-content: center; color: white;">
+                                    <span class="material-icons" style="font-size: 20px;">directions_run</span>
+                                </div>
+                                <div style="min-width: 40px; height: 40px; border-radius: 20px; background-color: var(--md-sys-color-surface-variant); display: flex; align-items: center; justify-content: center; color: var(--md-sys-color-on-surface-variant);">4</div>
+                                <div style="min-width: 40px; height: 40px; border-radius: 20px; background-color: var(--md-sys-color-surface-variant); display: flex; align-items: center; justify-content: center; color: var(--md-sys-color-on-surface-variant);">5</div>
+                                <div style="min-width: 40px; height: 40px; border-radius: 20px; background-color: var(--md-sys-color-surface-variant); display: flex; align-items: center; justify-content: center; color: var(--md-sys-color-on-surface-variant);">6</div>
+                                <div style="min-width: 40px; height: 40px; border-radius: 20px; background-color: var(--md-sys-color-surface-variant); display: flex; align-items: center; justify-content: center; color: var(--md-sys-color-on-surface-variant);">7</div>
+                                <div style="min-width: 40px; height: 40px; border-radius: 20px; background-color: var(--md-sys-color-surface-variant); display: flex; align-items: center; justify-content: center; color: var(--md-sys-color-on-surface-variant);">8</div>
+                            </div>
+                        </div>
+                        
+                        <div class="bottom-nav">
+                            <div class="nav-item">
+                                <span class="material-icons">home</span>
+                                <span>首页</span>
+                            </div>
+                            <div class="nav-item active">
+                                <span class="material-icons">fitness_center</span>
+                                <span>训练</span>
+                            </div>
+                            <div class="nav-item">
+                                <span class="material-icons">insights</span>
+                                <span>数据</span>
+                            </div>
+                            <div class="nav-item">
+                                <span class="material-icons">person</span>
+                                <span>我的</span>
+                            </div>
+                        </div>
+                        
+                        <div class="floating-control" id="floatingControl">
+                            <span class="material-icons">play_arrow</span>
+                            <div class="control-actions">
+                                <span class="material-icons">pause</span>
+                                <span class="material-icons">stop</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 历史记录页预览 -->
+        <div class="preview-card">
+            <div class="preview-header">
+                <div>历史记录页</div>
+                <span class="material-icons">insights</span>
+            </div>
+            <div class="preview-content">
+                <div class="app-container">
+                    <div id="history" class="page">
+                        <div class="app-bar">
+                            <h1>训练历史</h1>
+                            <div class="app-bar-actions">
+                                <span class="material-icons">calendar_today</span>
+                            </div>
+                        </div>
+                        
+                        <div class="filter-nav">
+                            <div class="filter-chip active">全部</div>
+                            <div class="filter-chip">今日</div>
+                            <div class="filter-chip">本周</div>
+                            <div class="filter-chip">本月</div>
+                        </div>
+                        
+                        <div class="filter-nav">
+                            <div class="filter-chip active">所有动作</div>
+                            <div class="filter-chip">瑜伽 (12)</div>
+                            <div class="filter-chip">太极 (8)</div>
+                            <div class="filter-chip">力量 (6)</div>
+                        </div>
+                        
+                        <div class="card">
+                            <h2 class="card-title">训练概览</h2>
+                            <div class="chart-placeholder">训练时长与动作类型分布图</div>
+                            <button class="button button-outlined" style="margin-top: 12px; width: 100%;">
+                                <span class="material-icons">ios_share</span>
+                                导出报告
+                            </button>
+                        </div>
+                        
+                        <div class="card">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <h2 class="card-title">今日训练</h2>
+                                <span style="font-size: 14px; color: var(--md-sys-color-on-surface-variant);">09:30 - 09:55</span>
+                            </div>
+                            <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
+                                <div class="filter-chip">瑜伽</div>
+                                <div class="filter-chip">25分钟</div>
+                                <div class="filter-chip">消耗87千卡</div>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <div>
+                                    <div style="font-size: 12px; color: var(--md-sys-color-on-surface-variant);">平均准确率</div>
+                                    <div style="font-size: 18px; font-weight: 500;">92%</div>
+                                </div>
+                                <div>
+                                    <div style="font-size: 12px; color: var(--md-sys-color-on-surface-variant);">平衡指数峰值</div>
+                                    <div style="font-size: 18px; font-weight: 500;">95%</div>
+                                </div>
+                                <div>
+                                    <div style="font-size: 12px; color: var(--md-sys-color-on-surface-variant);">平均心率</div>
+                                    <div style="font-size: 18px; font-weight: 500;">78 BPM</div>
+                                </div>
+                            </div>
+                            <button class="button button-outlined" style="margin-top: 12px; width: 100%;">
+                                查看详情
+                            </button>
+                        </div>
+                        
+                        <div class="card">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <h2 class="card-title">昨日训练</h2>
+                                <span style="font-size: 14px; color: var(--md-sys-color-on-surface-variant);">19:15 - 19:50</span>
+                            </div>
+                            <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
+                                <div class="filter-chip">太极</div>
+                                <div class="filter-chip">35分钟</div>
+                                <div class="filter-chip">消耗112千卡</div>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <div>
+                                    <div style="font-size: 12px; color: var(--md-sys-color-on-surface-variant);">平均准确率</div>
+                                    <div style="font-size: 18px; font-weight: 500;">88%</div>
+                                </div>
+                                <div>
+                                    <div style="font-size: 12px; color: var(--md-sys-color-on-surface-variant);">平衡指数峰值</div>
+                                    <div style="font-size: 18px; font-weight: 500;">90%</div>
+                                </div>
+                                <div>
+                                    <div style="font-size: 12px; color: var(--md-sys-color-on-surface-variant);">平均心率</div>
+                                    <div style="font-size: 18px; font-weight: 500;">82 BPM</div>
+                                </div>
+                            </div>
+                            <button class="button button-outlined" style="margin-top: 12px; width: 100%;">
+                                查看详情
+                            </button>
+                        </div>
+                        
+                        <div class="bottom-nav">
+                            <div class="nav-item">
+                                <span class="material-icons">home</span>
+                                <span>首页</span>
+                            </div>
+                            <div class="nav-item">
+                                <span class="material-icons">fitness_center</span>
+                                <span>训练</span>
+                            </div>
+                            <div class="nav-item active">
+                                <span class="material-icons">insights</span>
+                                <span>数据</span>
+                            </div>
+                            <div class="nav-item">
+                                <span class="material-icons">person</span>
+                                <span>我的</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 个人中心页预览 -->
+        <div class="preview-card">
+            <div class="preview-header">
+                <div>个人中心页</div>
+                <span class="material-icons">person</span>
+            </div>
+            <div class="preview-content">
+                <div class="app-container">
+                    <div id="profile" class="page">
+                        <div class="app-bar">
+                            <h1>个人中心</h1>
+                            <div class="app-bar-actions">
+                                <span class="material-icons">edit</span>
+                            </div>
+                        </div>
+                        
+                        <div class="profile-header">
+                            <div class="profile-avatar">
+                                <span class="material-icons">person</span>
+                            </div>
+                            <div class="profile-info">
+                                <h2>陈健康</h2>
+                                <div class="badge-container">
+                                    <div class="badge">瑜伽大师</div>
+                                    <div class="badge">连续训练7天</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card">
+                            <h2 class="card-title">设备管理</h2>
+                            <div class="settings-item">
+                                <div>
+                                    <div>智能毯-家用款</div>
+                                    <div style="font-size: 12px; color: var(--md-sys-color-on-surface-variant);">已连接 · ID: MAT2023101</div>
+                                </div>
+                                <span class="material-icons" style="color: var(--md-sys-color-primary);">bluetooth_connected</span>
+                            </div>
+                            <div class="settings-item">
+                                <div>
+                                    <div>智能毯-健身房</div>
+                                    <div style="font-size: 12px; color: var(--md-sys-color-on-surface-variant);">上次连接: 昨天</div>
+                                </div>
+                                <span class="material-icons" style="color: var(--md-sys-color-on-surface-variant);">bluetooth</span>
+                            </div>
+                            <button class="button button-outlined" style="margin-top: 12px; width: 100%;">
+                                <span class="material-icons">add</span>
+                                添加新设备
+                            </button>
+                        </div>
+                        
+                        <div class="card">
+                            <h2 class="card-title">采样频率设置</h2>
+                            <div class="settings-item">
+                                <div>标准模式 (15Hz)</div>
+                                <label class="switch">
+                                    <input type="checkbox" checked>
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div class="settings-item">
+                                <div>高精度模式 (30Hz)</div>
+                                <label class="switch">
+                                    <input type="checkbox">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div class="settings-item">
+                                <div>节能模式 (5Hz)</div>
+                                <label class="switch">
+                                    <input type="checkbox">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="card">
+                            <h2 class="card-title">偏好设置</h2>
+                            <div class="settings-item">
+                                <div>热力图配色</div>
+                                <div style="display: flex; gap: 8px;">
+                                    <div style="width: 20px; height: 20px; border-radius: 10px; background-color: #146c2e;"></div>
+                                    <div style="width: 20px; height: 20px; border-radius: 10px; background-color: #33FFBD;"></div>
+                                    <span class="material-icons">arrow_forward_ios</span>
+                                </div>
+                            </div>
+                            <div class="settings-item">
+                                <div>语音反馈</div>
+                                <label class="switch">
+                                    <input type="checkbox" checked>
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div class="settings-item">
+                                <div>动作完成提示音</div>
+                                <label class="switch">
+                                    <input type="checkbox" checked>
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div class="settings-item">
+                                <div>云端同步</div>
+                                <label class="switch">
+                                    <input type="checkbox" checked>
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="card">
+                            <h2 class="card-title">数据管理</h2>
+                            <div class="settings-item">
+                                <div>本地存储</div>
+                                <div>245MB / 1GB</div>
+                            </div>
+                            <div class="settings-item">
+                                <div>清除缓存</div>
+                                <span class="material-icons">arrow_forward_ios</span>
+                            </div>
+                            <div class="settings-item">
+                                <div>导出所有数据</div>
+                                <span class="material-icons">arrow_forward_ios</span>
+                            </div>
+                        </div>
+                        
+                        <div class="bottom-nav">
+                            <div class="nav-item">
+                                <span class="material-icons">home</span>
+                                <span>首页</span>
+                            </div>
+                            <div class="nav-item">
+                                <span class="material-icons">fitness_center</span>
+                                <span>训练</span>
+                            </div>
+                            <div class="nav-item">
+                                <span class="material-icons">insights</span>
+                                <span>数据</span>
+                            </div>
+                            <div class="nav-item active">
+                                <span class="material-icons">person</span>
+                                <span>我的</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 页面反馈浮层示例 -->
+        <div class="preview-card">
+            <div class="preview-header">
+                <div>页面反馈浮层</div>
+                <span class="material-icons">feedback</span>
+            </div>
+            <div class="preview-content">
+                <div class="app-container" style="position: relative;">
+                    <div style="padding: 16px;">
+                        <h2>反馈浮层示例</h2>
+                        <p>以下是应用中可能出现的反馈浮层示例</p>
+                        
+                        <div class="card">
+                            <h2 class="card-title">一般反馈</h2>
+                            <div style="width: 100%; height: 200px; position: relative; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; margin-bottom: 20px;">
+                                <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center;">
+                                    <div class="feedback-card" style="position: relative; display: block;">
+                                        <div class="feedback-icon">
+                                            <span class="material-icons">arrow_upward</span>
+                                        </div>
+                                        <h3>重心偏左</h3>
+                                        <p>请向右侧微调</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <h2 class="card-title">紧急警告</h2>
+                            <div style="width: 100%; height: 200px; position: relative; border: 1px solid #ddd; border-radius: 8px; overflow: hidden;">
+                                <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(186, 26, 26, 0.8); display: flex; align-items: center; justify-content: center;">
+                                    <div class="feedback-card" style="position: relative; display: block; border: 2px solid #fff;">
+                                        <div class="feedback-icon" style="color: var(--md-sys-color-error);">
+                                            <span class="material-icons">warning</span>
+                                        </div>
+                                        <h3>心率过高</h3>
+                                        <p>请立即休息并降低运动强度</p>
+                                        <button class="button button-primary" style="margin-top: 16px;">
+                                            确认
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
